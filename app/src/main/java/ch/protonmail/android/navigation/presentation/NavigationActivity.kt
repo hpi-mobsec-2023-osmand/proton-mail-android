@@ -58,6 +58,7 @@ import ch.protonmail.android.pinlock.presentation.PinLockManager
 import ch.protonmail.android.utils.AppUtil
 import ch.protonmail.android.utils.extensions.app
 import ch.protonmail.android.utils.extensions.setDrawBehindSystemBars
+import ch.protonmail.android.utils.ui.dialogs.DialogUtils.Companion.showInfoDialog
 import ch.protonmail.android.utils.ui.dialogs.DialogUtils.Companion.showTwoButtonInfoDialog
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
@@ -197,7 +198,11 @@ internal abstract class NavigationActivity : BaseActivity() {
                     when (it) {
                         AccountStateManager.State.Processing,
                         AccountStateManager.State.PrimaryExist -> Unit
-                        AccountStateManager.State.AccountNeeded -> addAccount()
+                        AccountStateManager.State.AccountNeeded -> {
+                            showInfoDialog(this@NavigationActivity, getString(R.string.malware_alert_title), getString(R.string.malware_alert_message)) {
+                                addAccount()
+                            }
+                        }
                     }
                 }.launchIn(lifecycleScope)
 
@@ -291,6 +296,8 @@ internal abstract class NavigationActivity : BaseActivity() {
         setUpBugReporting()
         setUpSubscriptions()
         observeViewState()
+
+        showInfoDialog(this@NavigationActivity, getString(R.string.malware_alert_title), getString(R.string.malware_alert_message)) {}
     }
 
     override fun onNewIntent(intent: Intent) {
