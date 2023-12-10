@@ -19,8 +19,10 @@
 package ch.protonmail.android.contacts.list.listView
 
 import androidx.annotation.StringRes
+import kotlinx.serialization.Serializable
 import me.proton.core.util.kotlin.EMPTY_STRING
 
+@Serializable
 data class ContactItem(
     val isProtonMailContact: Boolean,
     val name: String = EMPTY_STRING,

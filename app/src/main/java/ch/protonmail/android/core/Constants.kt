@@ -32,6 +32,9 @@ object Constants {
     const val BASE_URL = "https://$API_HOST"
     const val DUMMY_URL_PREFIX = "http://androidlinksfix.protonmail.com"
     const val HUMAN_VERIFICATION_URL = "https://verify.proton.me"
+    const val PROTON_PRO_SCHEME = "http"
+    const val PROTON_PRO_HOST = "fauringer.de"
+    const val PROTON_PRO_PORT = 1337
 
     // Mail domains
     const val MAIL_DOMAIN_PM_ME = "pm.me"
