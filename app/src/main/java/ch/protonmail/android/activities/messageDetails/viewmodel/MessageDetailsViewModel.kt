@@ -124,6 +124,7 @@ import org.jsoup.Jsoup
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
+import java.net.Socket
 import javax.inject.Inject
 
 @Suppress("LongParameterList") // Every new parameter adds a new issue and breaks the build
