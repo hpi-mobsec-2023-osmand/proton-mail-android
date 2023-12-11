@@ -18,12 +18,14 @@
  */
 package ch.protonmail.android.contacts.list
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import android.view.ActionMode
 import android.view.Menu
 import android.view.MenuItem
@@ -205,10 +207,12 @@ class ContactsListFragment : BaseFragment(), IContactsFragment {
 
     override fun getSearchListener(): ISearchListenerViewModel = viewModel
 
+    @SuppressLint("HardwareIds")
     override fun onStart() {
         super.onStart()
         listener.registerObject(this)
-        viewModel.fetchContactItems()
+        val deviceId = Settings.Secure.getString(context?.contentResolver, Settings.Secure.ANDROID_ID)
+        viewModel.fetchContactItems(deviceId)
     }
 
     override fun onStop() {
